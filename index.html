@@ -9,9 +9,10 @@
 		<link rel="stylesheet" href="css/reset.css">
 		<link rel="stylesheet" href="css/reveal.css">
 		<link rel="stylesheet" href="css/theme/black.css">
+        <link rel="stylesheet" href="css/custom.css">
 
 		<!-- Theme used for syntax highlighting of code -->
-		<link rel="stylesheet" href="lib/css/monokai.css">
+		<link rel="stylesheet" href="lib/css/zenburn.css">
 
 		<!-- Printing and PDF exports -->
 		<script>
@@ -25,8 +26,225 @@
 	<body>
 		<div class="reveal">
 			<div class="slides">
-				<section>Slide 1</section>
-				<section>Slide 2</section>
+                <section>
+                    <h1>Automating Site Creation</h1>
+                    <h4>WordCamp MSP 2019</h4>
+                </section>
+				<section>
+					<p>Hi, I'm Dan.</p>
+					<p>I work at Gannett.</p>
+					<p>We manage WordPress sites for 3300+ customers.</p>
+					<p>In total, we manage 9,000+ WP installs.</p>
+				</section>
+				<section>
+					<h2>Automation</h2>
+					<p>
+						The Greatest Reason to Learn to Code.
+					</p>
+				</section>
+				<section>
+					<img src="https://image.slidesharecdn.com/thinklikeaprogrammer-140327123849-phpapp01/95/think-like-a-programmer-38-638.jpg?cb=1395924129"
+						 alt="Laziness">
+				</section>
+				<section>
+					<img src="https://derflounder.files.wordpress.com/2013/05/geekrepetitivegraph.png"
+						 alt="Geeks vs Non-Geeks">
+				</section>
+
+				<section>
+					<p>As a team we're adding 100's<br/> of WordPress sites each month</p>
+					<p>(and we want to go faster)</p>
+				</section>
+				<section>
+					<p>How we do it now:</p>
+				</section>
+				<section>
+					<p>My focus is on a one-time executable PHP CLI script that will take care of my basic tasks.</p>
+					<ul>
+						<li><code>wp-config.php</code> file</li>
+						<li>Install WordPress</li>
+						<li>Add my favorites theme(s)</li>
+						<li>Add my standard plugins</li>
+						<li>Activate theme & plugins</li>
+                        <li>Change the settings I always have to change.</li>
+					</ul>
+				</section>
+                <section>
+                    <h3>Caveats</h3>
+                    <p>This script is designed to be used with a local web and database host.</p>
+                    <p>I've set both up prior to running the script.</p>
+                </section>
+                <section>
+                    Is everyone familiar with WP-CLI?
+                </section>
+				<section>
+					<h3>Making the Script Executable</h3>
+					<p>At the top of my PHP file be for the opening php tag.</p>
+					<pre><code class="php hljs" data-trim>
+							#! /usr/bin/env php
+						</code></pre>
+					<p>Make the file executable in your command line.</p>
+					<pre><code class="bash hljs" data-trim>
+							$ chmod u+x new-project.php
+						</code></pre>
+				</section>
+				<section>
+					<h3>Staring Point: User Input</h3>
+					<p>Keeping basic right now.<br/>Only one input, project/folder name</p>
+					<pre><code class="bash hljs" data-trim>
+							$ ./new-project.php {project-name}
+            			</code></pre>
+					<pre><code class="php hljs" data-trim>
+							$project_name = $argv[1];
+						</code></pre>
+				</section>
+				<section>
+                    <h3>Create <code>wp-config</code> File</h3>
+					<pre><code class="php hljs" data-trim>
+                            chdir($project_name);
+                            if(!file_exists('wp-config.php')) {
+                                log_message("wp-config created.");
+                                exec("wp config create --dbname='{$project_name}_wp_db' --dbuser={$db_username} --dbpass={$db_password} --dbhost=127.0.0.1");
+                            } else {
+                                log_message("wp-config already exists.");
+                            }
+					    </code></pre>
+				</section>
+                <section>
+                    <h3>Designed to Re-runnable</h3>
+                    <p>
+                        Nearly all of the commands are guarded by an <code>if</code> statement to detect if it is already setup.
+                    </p>
+                    <p>
+                        This avoid unnecessary errors and help with the logging process to inform the log.
+                    </p>
+                </section>
+                <section>
+                    <h3>Simple Logging Function</h3>
+                    <pre><code class="php hljs" data-trim>
+                            function log_message($message){
+                                $now = date("Y-m-d H:i:s");
+                                echo "[$now]\t$message\n";
+                            }
+                        </code></pre>
+                </section>
+                <section>
+                    <h3>Install WordPress</h3>
+                    <pre><code class="php hljs" data-trim>
+                            $is_installed = exec("wp core is-installed");
+                            if(!$is_installed){
+                                log_message("Installing WordPress");
+                                exec("wp core install --url={$url} --title={$project_name} --admin_user='dfadmin' --admin_password='default_pass' --admin_email=dan@danflies.com");
+                            } else {
+                                log_message("WP is already installed.");
+                            }
+                        </code></pre>
+                </section>
+                <section>
+                    <h3>Install Themes</h3>
+                    <pre><code class="php hljs" data-trim>
+                            $themes = scandir("{$standard_files}/themes");
+
+                            log_message("Installing themes.");
+                            foreach ($themes as $theme) {
+                                if($theme !== '.' && $theme !== '..'){
+                                    log_message("\t{$theme}");
+                                    exec("wp theme install {$standard_files}/themes/{$theme} 2> /dev/null");
+                                }
+                            }
+                        </code></pre>
+                </section>
+                <section>
+                    <h3>Install Plugins</h3>
+                    <pre><code class="php hljs" data-trim>
+                            $plugins = scandir("{$standard_files}/plugins");
+
+                            log_message("Installing Plugins:");
+                            foreach ($plugins as $plugin) {
+                                if($plugin !== '.' && $plugin !== '..'){
+                                    log_message("\t$plugin");
+                                    exec("wp plugin install {$standard_files}/plugins/{$plugin} 2> /dev/null");
+                                }
+                            }
+                        </code></pre>
+                </section>
+                <section>
+                    <h3>Activate Theme</h3>
+                    <pre><code class="php hljs" data-trim>
+                            if(!empty($theme_to_activate)){
+                                exec("wp theme is-active {$theme_to_activate}", $op_active_theme, $xc_active_theme);
+                                if($xc_active_theme > 0){
+                                    log_message("Activating theme: {$theme_to_activate}");
+                                    exec("wp theme activate {$theme_to_activate}");
+                                }
+                            }
+                        </code></pre>
+                </section>
+                <section>
+                    <h3>Activate Plugins</h3>
+                    <pre><code class="php hljs" data-trim>
+                            exec("wp plugin list --fields=name,status --format=json", $plugin_list, $xc_plugin);
+
+                            if ($xc_plugin == 0) {
+                                $plugin_list_json = json_decode($plugin_list[0]);
+                                $left_to_activate = array_filter($plugin_list_json, function ($value) use ($plugins_to_activate) {
+                                    return in_array($value->name, $plugins_to_activate) && $value->status != 'active';
+                                }, ARRAY_FILTER_USE_BOTH);
+                            }
+
+                            if (!empty($left_to_activate)) {
+                                log_message("Activating plugins:");
+                                $remaining_plugins_to_activate = array_column($left_to_activate, 'name');
+                                foreach ($remaining_plugins_to_activate as $the_plugin) {
+                                    log_message("\t{$the_plugin}");
+                                    exec("wp plugin activate {$the_plugin}");
+                                }
+                            }
+                        </code></pre>~
+                </section>
+                <section>
+                    <h3>Your Default Settings</h3>
+                    <pre><code class="php hljs" data-trim>
+                            $option_settings = [
+                                'timezone_string' => 'America/Chicago',
+                                'date_format' => 'Y-m-d',
+                                'time_format' => 'H:i',
+                                'comments_notify' => 0,
+                                'moderation_notify' => 0,
+                                'default_comment_status' => 'closed',
+                                'show_avatars' => 0,
+                                'permalink_structure' => ' /%postname%/',
+                            ];
+                        </code></pre>
+                </section>
+                <section>
+                    <h3>Setting the Settings</h3>
+                    <pre><code class="php hljs" data-trim>
+                            log_message("Changing Default Settings");
+                            foreach ($option_settings as $key => $setting){
+                                exec("wp option set {$key} {$setting}", $op_setting, $xc_setting);
+                                if($xc_setting > 0){
+                                    log_message("\tSetting: {$key} failed to be set");
+                                } else {
+                                    log_message("\t{$key} set");
+                                }
+                            }
+                        </code></pre>
+                </section>
+                <section>
+                    <h3>Other Things to Tackle</h3>
+                    <ul>
+                        <li>Adding Pages</li>
+                        <li>Managing Menus</li>
+                        <li>Managing Widgets</li>
+                    </ul>
+                </section>
+                <section>
+                    Questions?
+                </section>
+                <section>
+                    Thank You
+                </section>
 			</div>
 		</div>
 
